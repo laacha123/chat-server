@@ -1,4 +1,5 @@
 // Create the CSS styles and append to the document head
+
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 body {
@@ -25,7 +26,6 @@ body {
     align-items: center;
     justify-content: center;
 }
-
 .chat-icon img {
     transform: rotateY(0deg);
     width: 25px;
@@ -223,13 +223,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let botName = sessionStorage.getItem('botName') || '';  // Persist bot name across sessions
 
+    // Detect if it's the first time opening the chat and prevent multiple triggers
+    let chatInitiated = sessionStorage.getItem('chatInitiated') === 'true';
+
     document.getElementById('chatIcon-n').addEventListener('click', function () {
         document.getElementById('chatBox').style.display = 'block';
         document.getElementById('chatIcon').classList.add('chat-icon-togggle');
 
-        // If no bot name is stored, trigger bot initiation only once
-        if (!botName) {
+        // If no bot name is stored or chat is not initiated, trigger bot initiation only once
+        if (!chatInitiated) {
             socket.emit('user_message', { message: 'initiate_chat' });
+            sessionStorage.setItem('chatInitiated', 'true');
         }
     });
 
