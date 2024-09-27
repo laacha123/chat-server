@@ -214,26 +214,24 @@ const chatBoxHTML = `
 </div>
 `;
 
-// Ensure DOM is fully loaded before manipulating it
+// When the DOM is fully loaded, configure the chat
 document.addEventListener('DOMContentLoaded', function() {
-    // Append chat box to the body
     const chatBoxContainer = document.createElement("div");
     chatBoxContainer.innerHTML = chatBoxHTML;
     document.body.appendChild(chatBoxContainer);
 
-    let botName = sessionStorage.getItem('botName') || '';  // Persist bot name across sessions
-
-    // Detect if it's the first time opening the chat and prevent multiple triggers
-    let chatInitiated = sessionStorage.getItem('chatInitiated') === 'true';
+    // Retrieve chat initialized status
+    let isChatInitialized = localStorage.getItem('chatInitialized') === 'true';
 
     document.getElementById('chatIcon-n').addEventListener('click', function () {
         document.getElementById('chatBox').style.display = 'block';
         document.getElementById('chatIcon').classList.add('chat-icon-togggle');
 
-        // If no bot name is stored or chat is not initiated, trigger bot initiation only once
-        if (!chatInitiated) {
+        // Check if the chat is being initialized for the first time
+        if (!isChatInitialized) {
             socket.emit('user_message', { message: 'initiate_chat' });
-            sessionStorage.setItem('chatInitiated', 'true');
+            localStorage.setItem('chatInitialized', 'true');  // Set chat as initialized
+            isChatInitialized = true;
         }
     });
 
@@ -246,7 +244,9 @@ document.addEventListener('DOMContentLoaded', function() {
         withCredentials: true
     });
 
-    let chatHistory = '';
+    socket.on('bot_message', function(data) {
+        displayMessage(data.bot_name || 'Bot', data.message);
+    });
 
     document.getElementById('sendBtn').addEventListener('click', function() {
         sendMessage();
@@ -258,20 +258,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    socket.on('bot_message', function(data) {
-        const message = data.message;
-        botName = data.bot_name || botName;  // If bot name is sent, use it
-        sessionStorage.setItem('botName', botName);  // Save bot name for this session
-        displayMessage(botName, message);
-        chatHistory += `${botName}: ${message}\n`;
-    });
-
     function sendMessage() {
-        const userInput = document.getElementById('userInput').value;
-        if (userInput.trim() !== '') {
+        const userInput = document.getElementById('userInput').value.trim();
+        if (userInput) {
             displayMessage('You', userInput);
-            chatHistory += `User: ${userInput}\n`;
-            socket.emit('user_message', { message: userInput, history: chatHistory, bot_name: botName });
+            socket.emit('user_message', { message: userInput });
             document.getElementById('userInput').value = '';
         }
     }
@@ -279,12 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayMessage(sender, message) {
         const chatContent = document.getElementById('chatContent');
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message');
-
-        if (sender !== 'You') {
-            messageElement.classList.add('bot_message');
-        }
-
+        messageElement.classList.add('message', sender === 'You' ? 'user_message' : 'bot_message');
         messageElement.innerHTML = `<div><strong>${sender}:</strong> ${message}</div>`;
         chatContent.appendChild(messageElement);
         chatContent.scrollTop = chatContent.scrollHeight;
