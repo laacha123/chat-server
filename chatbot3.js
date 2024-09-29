@@ -1,4 +1,5 @@
-// Create the CSS styles and append them to the document head
+// Create the CSS styles and append to the document head
+
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 body {
@@ -44,20 +45,6 @@ body {
 }
 .chat-icon-togggle .chat-icon-h {
     display: inline-flex;
-}
-@keyframes mv1 {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-.chat-icon:hover {
-    background-color: var(--secondary);
-}
-.chat-icon:hover img {
-    transform: rotateY(180deg);
 }
 .chat-box {
     position: fixed;
@@ -219,17 +206,16 @@ document.addEventListener('DOMContentLoaded', function() {
     chatBoxContainer.innerHTML = chatBoxHTML;
     document.body.appendChild(chatBoxContainer);
 
-    // Retrieve chat initialized status
     let isChatInitialized = localStorage.getItem('chatInitialized') === 'true';
+    let botName = localStorage.getItem('botName');
 
     document.getElementById('chatIcon-n').addEventListener('click', function () {
         document.getElementById('chatBox').style.display = 'block';
         document.getElementById('chatIcon').classList.add('chat-icon-togggle');
 
-        // Check if the chat is being initialized for the first time
         if (!isChatInitialized) {
             socket.emit('user_message', { message: 'initiate_chat' });
-            localStorage.setItem('chatInitialized', 'true');  // Set chat as initialized
+            localStorage.setItem('chatInitialized', 'true');
             isChatInitialized = true;
         }
     });
@@ -244,7 +230,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     socket.on('bot_message', function(data) {
-        displayMessage(data.bot_name || 'Bot', data.message);
+        if (data.bot_name) {
+            botName = data.bot_name;
+            localStorage.setItem('botName', botName);
+        }
+        displayMessage(botName || 'Bot', data.message);
     });
 
     document.getElementById('sendBtn').addEventListener('click', function() {
@@ -261,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const userInput = document.getElementById('userInput').value.trim();
         if (userInput) {
             displayMessage('You', userInput);
-            socket.emit('user_message', { message: userInput });
+            socket.emit('user_message', { message: userInput, bot_name: botName });
             document.getElementById('userInput').value = '';
         }
     }
